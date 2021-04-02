@@ -1,14 +1,22 @@
-import os
 import asyncio
 import json
+import os
+import re
 import subprocess
-import requests
 import tempfile
+import zipfile
+import base64
 
 import py7zr
-import rarfile
-import zipfile
 import pyminizip
+import rarfile
+import requests
+import tarfile
+
+import dicttoxml
+import xmltodict
+from json2xml import json2xml
+from json2xml.utils import readfromurl, readfromstring, readfromjson
 
 from ioc_finder import find_iocs
 from walkoff_app_sdk.app_base import AppBase
@@ -48,6 +56,15 @@ class Tools(AppBase):
         headers = {"Authorization": "Bearer %s" % apikey}
         return requests.post(url, headers=headers, json=data).text
 
+    async def string_to_base64(self, string):
+        encoded_bytes = base64.b64encode(string.encode("utf-8"))
+        encoded_string = str(encoded_bytes, "utf-8")
+        return encoded_string
+
+    async def base64_to_string(self, base64_string):
+        decoded_bytes = base64.b64decode(base64_string.encode("utf-8"))
+        decoded_string = str(decoded_bytes, "utf-8")
+        return decoded_string
     # This is an email function of Shuffle
     async def send_email_shuffle(self, apikey, recipients, subject, body):
         targets = [recipients]
@@ -216,6 +233,19 @@ class Tools(AppBase):
         print(f"Mapping {input_data} to {output_data}")
 
         return output_data
+
+
+    async def regex_replace(self, input_data, regex, replace_string="", ignore_case="False"):
+
+        print("="*80)
+        print(f"Regex: {regex}")
+        print(f"replace_string: {replace_string}")
+        print("="*80)
+
+        if ignore_case.lower().strip() == "true":
+            return re.sub(regex, replace_string, input_data, flags=re.IGNORECASE)
+        else:
+            return re.sub(regex, replace_string, input_data)
 
     async def execute_python(self, code, shuffle_input):
         print("Run with shuffle_data %s" % shuffle_input)
@@ -645,6 +675,47 @@ class Tools(AppBase):
                             )
                             continue
 
+                    elif fileformat.strip().lower() == "tar":
+                        try:
+                            with tarfile.open(os.path.join(tmpdirname, "archive"),mode="r"
+                            ) as z_file:
+                                for member in z_file.getnames():
+                                    member_files = z_file.extractfile(member)
+                                    to_be_uploaded.append(
+                                            {"filename": member, "data":member_files.read() }
+                                        )                                   
+                                return_data["success"] = True 
+                        except Exception as e:
+                            return_data["files"].append(
+                                {
+                                    "success": False,
+                                    "file_id": file_id,
+                                    "filename": item["filename"],
+                                    "message": e,
+                                }
+                            )
+                            continue  
+                    elif fileformat.strip().lower() == "tar.gz":
+                        try:
+                            with tarfile.open(os.path.join(tmpdirname, "archive" ),mode="r:gz"
+                            ) as z_file:
+                                for member in z_file.getnames():
+                                    member_files = z_file.extractfile(member)
+                                    to_be_uploaded.append(
+                                            {"filename": member, "data":member_files.read() }
+                                        )                                   
+                                return_data["success"] = True 
+                        except Exception as e:
+                            return_data["files"].append(
+                                {
+                                    "success": False,
+                                    "file_id": file_id,
+                                    "filename": item["filename"],
+                                    "message": e,
+                                }
+                            )
+                            continue
+
                     elif fileformat.strip().lower() == "7zip":
                         try:
                             with py7zr.SevenZipFile(
@@ -761,6 +832,18 @@ class Tools(AppBase):
 
         except Exception as excp:
             return {"success": False, "message": excp}
+    
+    async def xml_json_convertor(self, convertto, data):
+        try:
+            if convertto=='json':
+                ans=xmltodict.parse(data)
+                json_data = json.dumps(ans)
+                return json_data
+            else:
+                ans = readfromstring(data)
+                return json2xml.Json2xml(ans, wrapper="all", pretty=True).to_xml()
+        except Exception as e:
+            return e
 
 
 if __name__ == "__main__":
