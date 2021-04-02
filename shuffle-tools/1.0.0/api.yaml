@@ -12,6 +12,26 @@ contact_info:
   url: https://shuffler.io
   email: frikky@shuffler.io
 actions:
+  - name: string_to_base64
+    description: Base64 encode a string
+    parameters:
+      - name: string
+        description: string to encode
+        multiline: true
+        example: "This is a string to be encoded"
+        required: true
+        schema:
+          type: string
+  - name: base64_to_string
+    description: Decode a base64 string
+    parameters:
+      - name: base64_string
+        description: Base64 string to decode
+        multiline: true
+        example: "VGhpcyBpcyBhIHN0cmluZyB0byBiZSBlbmNvZGVk"
+        required: true
+        schema:
+          type: string
   - name: send_sms_shuffle
     description: Send an SMS from Shuffle
     parameters:
@@ -264,6 +284,40 @@ actions:
     returns:
       schema:
         type: string
+  - name: regex_replace
+    description: Replace all instances matching a regular expression
+    parameters:
+      - name: input_data
+        description: The input data to use
+        required: true
+        multiline: true
+        example: $exec.http_headers
+        schema:
+          type: string
+      - name: regex
+        description: Your regular expression
+        multiline: false
+        example: "(Content-\\w+): (.*)"
+        required: true
+        schema:
+          type: string
+      - name: replace_string
+        description: Replacement string (capture groups with \1 \2)
+        multiline: true
+        example: "Content header '\\1' = '\\2'"
+        required: false
+        schema:
+          type: string
+      - name: ignore_case
+        description: "Make regex case insensitive (Default: False)"
+        multiline: false
+        example: "False"
+        required: false
+        schema:
+          type: string
+    returns:
+      schema:
+        type: string
   - name: parse_list
     description: Parses a list and returns it as a json object
     parameters:
@@ -370,6 +424,8 @@ actions:
           - zip
           - rar
           - 7zip
+          - tar
+          - tar.gz
         schema:
           type: string
       - name: password
@@ -411,6 +467,27 @@ actions:
         multiline: false
         schema:
           type: string
+    returns:
+      schema:
+        type: string
+  - name: xml_json_convertor
+    description: Converts xml to json and vice versa
+    parameters:
+      - name: convertto
+        required: true
+        multiline: false
+        options:
+          - json
+          - xml
+        schema:
+          type: string
+      - name: data
+        description:
+        required: true
+        multiline: false
+        example: 'xml data / json data'
+        schema:
+          type: string  
     returns:
       schema:
         type: string
